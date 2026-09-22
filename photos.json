@@ -1,3 +1,12 @@
 {
-  "photos": []
+  "_note": "Generated list -- do not edit by hand. thumb = the web copy shown in the grid; full = the image shown in the viewer and downloaded. w/h are the FULL image's pixel dimensions and drive the row layout.",
+  "photos": [
+    {
+      "thumb": "photos/thumb/626d59d87a42eedc.jpg",
+      "full": "photos/626d59d87a42eedc.jpg",
+      "w": 4080,
+      "h": 3060,
+      "location": ""
+    }
+  ]
 }
