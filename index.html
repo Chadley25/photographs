@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photographs — Bradley Chavis</title>
+<meta name="description" content="Photographs by Bradley Chavis. Free for personal, non-commercial use under CC BY-NC 4.0.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,300;0,400;1,300&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  body {
+    margin: 0;
+    background-color: #fbfaf8;
+    color: #1c1b19;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(rgba(28,27,25,.075) 1px, transparent 1.1px),
+      repeating-linear-gradient(90deg, rgba(28,27,25,.022) 0 1px, transparent 1px 4px);
+    background-size: 22px 22px, auto;
+    background-position: 0 0;
+    background-attachment: fixed;
+  }
+  a { color: #4a5c4a; text-decoration: none; }
+  a:hover { color: #1c1b19; }
+
+  .shell { min-height: 100vh; font-family: 'Sora', system-ui, sans-serif; display: flex; flex-direction: column; }
+
+  .band { max-width: 1680px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+
+  header.band { padding: 56px 28px 28px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; justify-content: space-between; }
+  header h1 { font-family: 'Newsreader', Georgia, serif; font-weight: 300; font-size: 40px; line-height: 1; letter-spacing: -0.01em; margin: 0 0 10px; }
+  .eyebrow { margin: 0 0 12px; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6b665d; white-space: nowrap; }
+  .blurb { margin: 0; font-size: 14px; font-weight: 300; line-height: 1.6; color: #504c45; max-width: 42ch; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+  .count { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #6b665d; white-space: nowrap; flex-shrink: 0; }
+  .density { display: flex; gap: 2px; border: 1px solid #ddd9d1; padding: 3px; border-radius: 2px; }
+  .density button {
+    background: transparent; color: #55524c; border: none;
+    font-family: 'Sora', sans-serif; font-size: 11px; letter-spacing: .04em;
+    padding: 7px 13px; cursor: pointer; border-radius: 1px;
+  }
+  .density button:hover { background: #f1efe9; }
+  .density button[aria-pressed="true"] { background: #1c1b19; color: #f7f6f3; }
+  .density button[aria-pressed="true"]:hover { background: #1c1b19; }
+
+  main.band { flex: 1; padding: 0 28px; }
+  #grid { display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; gap: 10px; }
+
+  .cell {
+    display: block; position: relative; overflow: hidden; background: #e4e1da; flex: 0 0 auto;
+    box-shadow: 0 1px 2px rgba(28,27,25,.12), 0 10px 28px rgba(28,27,25,.08);
+    transition: box-shadow .25s ease;
+    animation: fadein .5s ease both;
+  }
+  .cell:hover { box-shadow: 0 2px 4px rgba(28,27,25,.16), 0 16px 40px rgba(28,27,25,.14); }
+  .cell:focus-visible { outline: 2px solid #1c1b19; outline-offset: 3px; }
+  .cell > img {
+    width: 102.5%; height: 102.5%; margin: -1.25% 0 0 -1.25%; object-fit: cover; display: block;
+    transform: scale(0.9756); transform-origin: center;
+    transition: transform .34s cubic-bezier(.33,1,.68,1);
+  }
+  .cell:hover > img { transform: scale(1); }
+
+  .empty { padding: 72px 0 40px; max-width: 46ch; }
+  .empty h2 { font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 300; margin: 0 0 10px; }
+  .empty p { margin: 0; font-size: 13px; font-weight: 300; line-height: 1.75; color: #504c45; }
+
+  footer.band { padding: 64px 28px 48px; margin: 72px auto 0; border-top: 1px solid #e6e3dd; }
+  .footer-inner { display: flex; flex-wrap: wrap; gap: 40px 64px; justify-content: space-between; align-items: flex-start; }
+  .footer-inner h2 { margin: 0 0 8px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 300; }
+  .footer-inner p.body { margin: 0 0 14px; font-size: 13px; font-weight: 300; line-height: 1.75; color: #504c45; text-wrap: pretty; }
+  .footer-inner p.body:last-child { margin-bottom: 0; }
+  .cc { border-bottom: 1px solid #b9b2a3; }
+  .copyright { margin: 0; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #6b665d; white-space: nowrap; flex-shrink: 0; }
+
+  /* --- License gate --- */
+  .gate-backdrop {
+    position: fixed; inset: 0; z-index: 60; background: rgba(12,11,9,.72);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    animation: fadein .16s ease both;
+  }
+  .gate {
+    background: #fbfaf8; max-width: 520px; width: 100%; padding: 34px 34px 28px;
+    border-radius: 3px; box-shadow: 0 30px 90px rgba(0,0,0,.4);
+  }
+  .gate h2 { margin: 0 0 14px; font-family: 'Newsreader', Georgia, serif; font-size: 23px; font-weight: 300; line-height: 1.25; }
+  .gate p { margin: 0 0 12px; font-size: 13px; font-weight: 300; line-height: 1.75; color: #3f3c36; text-wrap: pretty; }
+  .gate p.last { margin-bottom: 24px; }
+  .gate-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .btn-solid {
+    background: #1c1b19; color: #fbfaf8; border: none; font-family: 'Sora', sans-serif;
+    font-size: 12px; padding: 12px 20px; cursor: pointer; border-radius: 2px;
+  }
+  .btn-solid:hover { background: #333029; }
+  .btn-quiet {
+    background: none; border: 1px solid #ddd9d1; color: #55524c; font-family: 'Sora', sans-serif;
+    font-size: 12px; padding: 11px 16px; cursor: pointer; border-radius: 2px;
+  }
+  .btn-quiet:hover { background: #f1efe9; }
+  .gate-note { font-size: 11px; font-weight: 300; color: #857f75; margin-left: auto; }
+
+  /* --- Viewer --- */
+  .viewer {
+    position: fixed; inset: 0; z-index: 50; background: #12110f;
+    display: flex; flex-direction: column; animation: fadein .18s ease both;
+  }
+  .viewer-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 56px 72px 12px; }
+  .viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
+  .viewer-bar {
+    display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between;
+    padding: 14px 24px 22px; color: #f2f0ec;
+  }
+  .viewer-meta { display: flex; align-items: baseline; gap: 16px; min-width: 0; }
+  .viewer-index { font-size: 11px; letter-spacing: 0.14em; color: #8a857d; }
+  .viewer-location { font-family: 'Newsreader', Georgia, serif; font-size: 17px; font-weight: 300; }
+  .viewer-actions { display: flex; align-items: center; gap: 10px; }
+  .btn-dark {
+    background: none; border: 1px solid #3a3733; color: #f2f0ec; font-family: 'Sora', sans-serif;
+    font-size: 12px; padding: 9px 14px; cursor: pointer; border-radius: 2px;
+  }
+  .btn-dark:hover { background: #232120; }
+  .btn-download {
+    background: #f2f0ec; color: #12110f; font-size: 12px; padding: 10px 16px; border-radius: 2px;
+  }
+  .btn-download:hover { background: #ffffff; color: #12110f; }
+  .btn-close {
+    background: none; border: none; color: #8a857d; font-family: 'Sora', sans-serif;
+    font-size: 12px; padding: 9px 6px; cursor: pointer;
+  }
+  .btn-close:hover { color: #f2f0ec; }
+  .viewer-note { margin: 0; padding: 0 24px 26px; font-size: 11px; font-weight: 300; color: #77726b; }
+
+  @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+
+  @media (max-width: 460px) {
+    header.band { padding: 40px 20px 22px; }
+    header h1 { font-size: 34px; }
+    main.band { padding: 0 20px; }
+    footer.band { padding: 48px 20px 40px; }
+    /* Give the density switch its own line so it never runs off the edge. */
+    .controls { width: 100%; justify-content: space-between; }
+    .density button { padding: 7px 10px; }
+  }
+
+  @media (max-width: 640px) {
+    .viewer-stage { padding: 20px 16px 8px; }
+    .viewer-bar { padding: 10px 16px 16px; }
+    .viewer-note { padding: 0 16px 18px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cell, .gate-backdrop, .viewer { animation: none; }
+    .cell > img, .cell { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header class="band">
+    <div>
+      <h1 id="site-title">Photographs</h1>
+      <p class="eyebrow" id="site-author">Bradley Chavis</p>
+      <p class="blurb" id="site-blurb">Taken mostly outdoors, mostly of things that held still long enough.</p>
+    </div>
+    <div class="controls">
+      <span class="count" id="count-label"></span>
+      <div class="density" id="density" role="group" aria-label="Grid density"></div>
+    </div>
+  </header>
+
+  <main class="band">
+    <div id="grid"></div>
+    <div class="empty" id="empty" hidden>
+      <h2>Nothing here yet.</h2>
+      <p>No photographs have been published to this gallery so far. Check back later.</p>
+    </div>
+  </main>
+
+  <footer class="band">
+    <div class="footer-inner">
+      <div style="max-width: 62ch;">
+        <h2>Using these photos</h2>
+        <p class="body" id="license-note">Download anything here and use it for personal, non-commercial things: wallpapers, prints for your own wall, a school project. Credit Bradley Chavis where it's practical, and keep it non-commercial. For anything commercial, get in touch first.</p>
+        <p class="body">Licensed under <a class="cc" href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="license noopener">Creative Commons Attribution-NonCommercial 4.0 International</a> (CC BY-NC 4.0).</p>
+      </div>
+      <p class="copyright" id="copyright"></p>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Content (mirrors the design component's props) ----
+  var CONTENT = {
+    siteTitle: "Photographs",
+    author: "Bradley Chavis",
+    siteBlurb: "Taken mostly outdoors, mostly of things that held still long enough.",
+    licenseNote: "Download anything here and use it for personal, non-commercial things: wallpapers, prints for your own wall, a school project. Credit Bradley Chavis where it's practical, and keep it non-commercial. For anything commercial, get in touch first.",
+    downloadNote: "Free for personal, non-commercial use under CC BY-NC 4.0. Credit: Bradley Chavis."
+  };
+
+  var DENSITIES = [
+    { key: "large",  label: "Large",  rh: 460, title: "Fewer, larger photos per row" },
+    { key: "medium", label: "Medium", rh: 310, title: "Balanced" },
+    { key: "small",  label: "Small",  rh: 200, title: "Many photos at once" }
+  ];
+
+  var GAP = 10;
+  var COOKIE = "license_accepted";
+  var COOKIE_VALUE = "ccbync4";
+  var DENSITY_KEY = "photographs_density";
+
+  // ---- State ----
+  var state = {
+    photos: [],
+    density: "medium",
+    open: false,
+    i: 0,
+    width: 0,
+    agreed: false,
+    gateOpen: false
+  };
+
+  var cells = [];        // one persistent <a class="cell"> per photo
+  var rowNodes = [];     // reusable row containers
+  var grid = document.getElementById("grid");
+  var emptyEl = document.getElementById("empty");
+  var countEl = document.getElementById("count-label");
+  var densityEl = document.getElementById("density");
+  var lastFocus = null;
+
+  // ---- License agreement memory ----
+  function hasAgreed() {
+    try {
+      if (localStorage.getItem(COOKIE) === COOKIE_VALUE) return true;
+    } catch (e) {}
+    return document.cookie.split("; ").some(function (c) {
+      return c.indexOf(COOKIE + "=") === 0 && c.slice(COOKIE.length + 1) === COOKIE_VALUE;
+    });
+  }
+
+  function rememberAgreement() {
+    try { localStorage.setItem(COOKIE, COOKIE_VALUE); } catch (e) {}
+    var oneYear = 60 * 60 * 24 * 365;
+    try {
+      document.cookie = COOKIE + "=" + COOKIE_VALUE + "; max-age=" + oneYear + "; path=/; samesite=lax";
+    } catch (e) {}
+  }
+
+  function triggerDownload(url) {
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = url.split("/").pop() || "photograph.jpg";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  // ---- Static content ----
+  function paintContent() {
+    document.getElementById("site-title").textContent = CONTENT.siteTitle;
+    document.getElementById("site-author").textContent = CONTENT.author;
+    document.getElementById("site-blurb").textContent = CONTENT.siteBlurb;
+    document.getElementById("license-note").textContent = CONTENT.licenseNote;
+    document.getElementById("copyright").textContent =
+      "© " + new Date().getFullYear() + " " + CONTENT.author;
+    document.title = CONTENT.siteTitle + " — " + CONTENT.author;
+  }
+
+  function paintCount() {
+    var n = state.photos.length;
+    countEl.textContent = n === 0
+      ? "No photographs yet"
+      : n + (n === 1 ? " photograph" : " photographs");
+  }
+
+  // ---- Density switch ----
+  function buildDensity() {
+    DENSITIES.forEach(function (d) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = d.label;
+      b.title = d.title;
+      b.dataset.key = d.key;
+      b.setAttribute("aria-pressed", String(d.key === state.density));
+      b.addEventListener("click", function () {
+        if (state.density === d.key) return;
+        state.density = d.key;
+        try { localStorage.setItem(DENSITY_KEY, d.key); } catch (e) {}
+        paintDensity();
+        layout();
+      });
+      densityEl.appendChild(b);
+    });
+  }
+
+  function paintDensity() {
+    Array.prototype.forEach.call(densityEl.children, function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.key === state.density));
+    });
+  }
+
+  // ---- Grid ----
+  function altFor(p) {
+    return p.location ? "Photograph — " + p.location : "Photograph";
+  }
+
+  function buildCells() {
+    grid.textContent = "";
+    rowNodes = [];
+    cells = state.photos.map(function (p, idx) {
+      var a = document.createElement("a");
+      a.className = "cell";
+      a.href = p.full || p.file;
+      var img = document.createElement("img");
+      img.src = p.thumb || p.full || p.file;
+      img.alt = altFor(p);
+      img.loading = "lazy";
+      img.decoding = "async";
+      a.appendChild(img);
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        openViewer(idx);
+      });
+      a._ar = (p.w && p.h) ? (p.w / p.h) : 1.5;
+      return a;
+    });
+    emptyEl.hidden = state.photos.length > 0;
+    grid.hidden = state.photos.length === 0;
+  }
+
+  function targetHeight() {
+    var d = DENSITIES.filter(function (x) { return x.key === state.density; })[0] || DENSITIES[1];
+    var w = state.width;
+    if (!w) return d.rh;
+    if (w < 560) return Math.round(d.rh * 0.55);
+    if (w < 900) return Math.round(d.rh * 0.78);
+    return d.rh;
+  }
+
+  // Greedy justified-row packing: fill each row, then scale its height so the
+  // row's photos exactly span the container at their true aspect ratios.
+  function buildRows(items) {
+    var width = state.width;
+    var target = targetHeight();
+    if (!width) return [{ items: items, height: target }];
+
+    var rows = [];
+    var run = [];
+    var arSum = 0;
+
+    function flush(scale) {
+      if (!run.length) return;
+      var avail = width - GAP * (run.length - 1);
+      var height = scale ? avail / arSum : target;
+      rows.push({ items: run, height: Math.round(height) });
+      run = [];
+      arSum = 0;
+    }
+
+    items.forEach(function (it) {
+      run.push(it);
+      arSum += it._ar;
+      var rowWidth = arSum * target + GAP * (run.length - 1);
+      if (rowWidth >= width) flush(true);
+    });
+    flush(false);
+    return rows;
+  }
+
+  function layout() {
+    if (!cells.length) return;
+    var rows = buildRows(cells);
+
+    // Reuse row containers so cells are never detached from the document,
+    // which keeps the fade-in from replaying and avoids image re-decodes.
+    while (rowNodes.length < rows.length) {
+      var r = document.createElement("div");
+      r.className = "row";
+      grid.appendChild(r);
+      rowNodes.push(r);
+    }
+    while (rowNodes.length > rows.length) {
+      grid.removeChild(rowNodes.pop());
+    }
+
+    rows.forEach(function (row, ri) {
+      var node = rowNodes[ri];
+      row.items.forEach(function (cell, ci) {
+        cell.style.width = Math.round(row.height * cell._ar) + "px";
+        cell.style.height = row.height + "px";
+        if (node.children[ci] !== cell) node.insertBefore(cell, node.children[ci] || null);
+      });
+      while (node.children.length > row.items.length) {
+        node.removeChild(node.lastChild);
+      }
+    });
+  }
+
+  function measure() {
+    var w = Math.round(grid.getBoundingClientRect().width);
+    if (w && w !== state.width) {
+      state.width = w;
+      layout();
+    }
+  }
+
+  // ---- Viewer ----
+  var viewer = null;
+
+  function current() {
+    return state.photos[state.i] || state.photos[0] || {};
+  }
+
+  function openViewer(idx) {
+    if (!state.photos.length) return;
+    lastFocus = document.activeElement;
+    state.i = idx;
+    state.open = true;
+    renderViewer();
+  }
+
+  function closeViewer() {
+    state.open = false;
+    if (viewer) { viewer.remove(); viewer = null; }
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  function step(n) {
+    var len = state.photos.length;
+    if (!len) return;
+    state.i = (state.i + n + len) % len;
+    renderViewer();
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function renderViewer() {
+    var cur = current();
+    var url = cur.full || cur.file;
+
+    if (!viewer) {
+      viewer = el("div", "viewer");
+      viewer.setAttribute("role", "dialog");
+      viewer.setAttribute("aria-modal", "true");
+      viewer.setAttribute("aria-label", "Photograph viewer");
+      viewer.addEventListener("click", closeViewer);
+
+      var stage = el("div", "viewer-stage");
+      var img = el("img");
+      img.id = "viewer-img";
+      stage.appendChild(img);
+
+      var bar = el("div", "viewer-bar");
+      var meta = el("div", "viewer-meta");
+      var idxEl = el("span", "viewer-index"); idxEl.id = "viewer-index";
+      var locEl = el("span", "viewer-location"); locEl.id = "viewer-location";
+      meta.appendChild(idxEl);
+      meta.appendChild(locEl);
+
+      var actions = el("div", "viewer-actions");
+      var prev = el("button", "btn-dark", "Previous");
+      prev.type = "button";
+      prev.addEventListener("click", function (e) { e.stopPropagation(); step(-1); });
+      var next = el("button", "btn-dark", "Next");
+      next.type = "button";
+      next.addEventListener("click", function (e) { e.stopPropagation(); step(1); });
+
+      var dl = el("a", "btn-download", "Download full size");
+      dl.id = "viewer-download";
+      dl.setAttribute("download", "");
+      dl.addEventListener("click", onDownload);
+
+      var close = el("button", "btn-close", "Close");
+      close.type = "button";
+      close.addEventListener("click", function (e) { e.stopPropagation(); closeViewer(); });
+
+      actions.appendChild(prev);
+      actions.appendChild(next);
+      actions.appendChild(dl);
+      actions.appendChild(close);
+
+      bar.appendChild(meta);
+      bar.appendChild(actions);
+      bar.addEventListener("click", function (e) { e.stopPropagation(); });
+
+      var note = el("p", "viewer-note", CONTENT.downloadNote);
+
+      viewer.appendChild(stage);
+      viewer.appendChild(bar);
+      viewer.appendChild(note);
+      document.body.appendChild(viewer);
+      close.focus();
+    }
+
+    var vimg = viewer.querySelector("#viewer-img");
+    vimg.src = url || "";
+    vimg.alt = altFor(cur);
+
+    viewer.querySelector("#viewer-index").textContent =
+      pad(state.i + 1) + " / " + pad(state.photos.length);
+    viewer.querySelector("#viewer-location").textContent = cur.location || "";
+
+    var dlEl = viewer.querySelector("#viewer-download");
+    dlEl.href = url || "#";
+  }
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+
+  function onDownload(e) {
+    e.stopPropagation();
+    if (state.agreed) return; // let the native download proceed
+    e.preventDefault();
+    openGate();
+  }
+
+  // ---- License gate ----
+  var gate = null;
+
+  function openGate() {
+    if (gate) return;
+    state.gateOpen = true;
+
+    gate = el("div", "gate-backdrop");
+    gate.addEventListener("click", closeGate);
+
+    var box = el("div", "gate");
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-label", "Before you download");
+    box.addEventListener("click", function (e) { e.stopPropagation(); });
+
+    box.appendChild(el("h2", null, "Before you download"));
+
+    var p1 = el("p");
+    p1.appendChild(document.createTextNode("These photographs are licensed under "));
+    var link = el("a", "cc", "CC BY-NC 4.0");
+    link.href = "https://creativecommons.org/licenses/by-nc/4.0/";
+    link.target = "_blank";
+    link.rel = "license noopener";
+    p1.appendChild(link);
+    p1.appendChild(document.createTextNode(
+      ". You may share and adapt them for any non-commercial purpose, as long as you credit " +
+      CONTENT.author + " and note any changes you made."
+    ));
+    box.appendChild(p1);
+
+    box.appendChild(el("p", "last", "Commercial use is not permitted without permission."));
+
+    var actions = el("div", "gate-actions");
+    var agree = el("button", "btn-solid", "I agree — download");
+    agree.type = "button";
+    agree.addEventListener("click", function (e) {
+      e.stopPropagation();
+      rememberAgreement();
+      var cur = current();
+      var url = cur.full || cur.file;
+      state.agreed = true;
+      closeGate();
+      if (url) triggerDownload(url);
+    });
+
+    var cancel = el("button", "btn-quiet", "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", function (e) { e.stopPropagation(); closeGate(); });
+
+    actions.appendChild(agree);
+    actions.appendChild(cancel);
+    actions.appendChild(el("span", "gate-note", "Asked once per browser"));
+    box.appendChild(actions);
+
+    gate.appendChild(box);
+    document.body.appendChild(gate);
+    agree.focus();
+  }
+
+  function closeGate() {
+    state.gateOpen = false;
+    if (gate) { gate.remove(); gate = null; }
+  }
+
+  // ---- Keyboard ----
+  function onKey(e) {
+    if (state.gateOpen) {
+      if (e.key === "Escape") closeGate();
+      return;
+    }
+    if (!state.open) return;
+    if (e.key === "Escape") closeViewer();
+    if (e.key === "ArrowRight") step(1);
+    if (e.key === "ArrowLeft") step(-1);
+  }
+
+  // ---- Boot ----
+  function init() {
+    if (hasAgreed()) state.agreed = true;
+    try {
+      var savedDensity = localStorage.getItem(DENSITY_KEY);
+      if (savedDensity && DENSITIES.some(function (d) { return d.key === savedDensity; })) {
+        state.density = savedDensity;
+      }
+    } catch (e) {}
+
+    paintContent();
+    buildDensity();
+    paintCount();
+    buildCells();
+
+    if (window.ResizeObserver) {
+      new ResizeObserver(measure).observe(grid);
+    } else {
+      window.addEventListener("resize", measure);
+    }
+    measure();
+
+    window.addEventListener("keydown", onKey);
+
+    fetch("photos.json", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var list = d && Array.isArray(d.photos) ? d.photos : [];
+        state.photos = list;
+        paintCount();
+        buildCells();
+        state.width = 0;
+        measure();
+        layout();
+      })
+      .catch(function () {});
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
