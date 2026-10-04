@@ -1,0 +1,18 @@
+All photographs in this repository are © Bradley Chavis and are licensed under the
+Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).
+
+Full license text: https://creativecommons.org/licenses/by-nc/4.0/legalcode
+Human-readable summary: https://creativecommons.org/licenses/by-nc/4.0/
+
+You are free to:
+  - Share — copy and redistribute the photographs in any medium or format
+  - Adapt — remix, transform, and build upon them
+
+Under these terms:
+  - Attribution — give appropriate credit ("Photograph by Bradley Chavis"), provide a
+    link to the license, and indicate if changes were made.
+  - NonCommercial — you may not use the photographs for commercial purposes.
+
+For commercial licensing, contact the author.
+
+Note: the website source code in this repository is not covered by CC BY-NC 4.0.
