@@ -98,7 +98,7 @@
   // Smallest rendition at least `needW` pixels wide, within the pixel budget;
   // the largest allowed one when nothing is that wide.
   function pickRendition(p, needW) {
-    const allowed = p.renditions.filter((r, i) => i === 0 || r.legacy || r.w * r.h <= MAX_PIXELS);
+    const allowed = p.renditions.filter((r, i) => i === 0 || (!r.failed && (r.legacy || r.w * r.h <= MAX_PIXELS)));
     for (const r of allowed) if (r.w >= needW * 0.92) return r;
     return allowed[allowed.length - 1];
   }
@@ -471,7 +471,7 @@
 
   function render(transition) {
     V.img.style.transition = transition && !REDUCED_MOTION ? transition : "none";
-    V.img.style.transform = "translate3d(" + V.x + "px," + V.y + "px,0) scale(" + V.s + ")";
+    V.img.style.transform = "translate(" + V.x + "px," + V.y + "px) scale(" + V.s + ")";
     const zoomed = V.s > 1.01;
     V.stage.classList.toggle("zoomed", zoomed);
     V.zoomBtn.textContent = zoomed ? "Fit" : "Zoom";
@@ -531,11 +531,17 @@
       prefetchNeighbours();
       ensureSource();   // zoom may have moved on while this loaded
     };
-    (im.decode ? im.decode() : new Promise((ok, no) => { im.onload = ok; im.onerror = no; }))
+    // decode() can reject on very large images even when the file is fine, so
+    // a rejection falls back to a plain load. Only a real load failure rules
+    // the rendition out, and then the next-best one is tried.
+    const loaded = new Promise((ok, no) => { im.onload = ok; im.onerror = no; });
+    (im.decode ? im.decode().catch(() => (im.complete && im.naturalWidth ? null : loaded)) : loaded)
       .then(done, () => {
         if (!V || token !== V.token) return;
         V.loading = null;
         V.stage.classList.remove("busy");
+        r.failed = true;
+        ensureSource();
       });
   }
 

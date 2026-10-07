@@ -133,7 +133,10 @@
   .viewer-stage.dragging { cursor: grabbing; }
   .viewer-img {
     position: absolute; left: 0; top: 0; max-width: none;
-    transform-origin: 0 0; will-change: transform;
+    /* No will-change / 3D transform here: Chrome would put the image on one
+       GPU layer, and a zoomed panorama makes that layer too big to paint --
+       it goes blank. Left alone, it is drawn in tiles at any zoom. */
+    transform-origin: 0 0;
     box-shadow: 0 24px 80px rgba(0,0,0,.5);
     -webkit-user-drag: none; user-select: none;
   }
