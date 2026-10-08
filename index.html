@@ -65,18 +65,58 @@
   .cell:hover > img { transform: scale(1); }
 
   /* --- Place filters --- */
-  .filters { padding: 0 28px 22px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .filters[hidden] { display: none; }
+  .filterbar { padding: 0 28px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .filterbar[hidden] { display: none; }
+  .filter-label { margin: 0; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #6b665d; }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
   .chip {
     display: inline-flex; align-items: baseline; gap: 7px;
-    background: transparent; color: #55524c; border: 1px solid #ddd9d1; border-radius: 2px;
-    font-family: 'Sora', sans-serif; font-size: 11px; letter-spacing: .04em;
-    padding: 7px 11px; cursor: pointer; white-space: nowrap;
+    background: #fff; color: #3f3c36; border: 1px solid #cfcabf; border-radius: 2px;
+    font-family: 'Sora', sans-serif; font-size: 12px; letter-spacing: .02em;
+    padding: 7px 12px; cursor: pointer; white-space: nowrap;
   }
-  .chip:hover { background: #f1efe9; }
+  .chip:hover { background: #f1efe9; border-color: #1c1b19; }
   .chip-count { font-size: 10px; color: #8a857d; }
   .chip[aria-pressed="true"] { background: #1c1b19; border-color: #1c1b19; color: #f7f6f3; }
   .chip[aria-pressed="true"] .chip-count { color: #b9b2a3; }
+
+  /* Shown only while a filter is on: one quiet line with the way back. */
+  .filter-note { margin: 0 0 12px; font-size: 12px; font-weight: 300; color: #6b665d; }
+  .filter-note[hidden] { display: none; }
+  .show-all {
+    background: none; border: none; padding: 0; margin-left: 10px; cursor: pointer;
+    font: inherit; font-weight: 400; color: #1c1b19; border-bottom: 1px solid #b9b2a3;
+  }
+  .show-all:hover { border-bottom-color: #1c1b19; }
+
+  /* --- Selecting photos to download together --- */
+  /* Holding a photo selects it, so the browser's own long-press menu, text
+     selection and image drag must stay out of the way. */
+  .cell { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .cell > img { -webkit-user-drag: none; pointer-events: none; }
+  .selecting .cell { cursor: pointer; }
+  .selecting .cell::after {
+    content: ""; position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid #fff; background: rgba(18,17,15,.35); box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  }
+  .selecting .cell.picked { outline: 3px solid #1c1b19; outline-offset: -3px; }
+  .selecting .cell.picked > img { opacity: .82; }
+  .selecting .cell.picked::after {
+    background: #1c1b19 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat;
+  }
+  .selectbar {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 40;
+    display: flex; align-items: center; gap: 14px; white-space: nowrap;
+    max-width: calc(100vw - 24px); box-sizing: border-box;
+    background: #1c1b19; color: #f2f0ec; padding: 10px 12px 10px 18px; border-radius: 3px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.35); font-family: 'Sora', sans-serif; font-size: 12px;
+  }
+  .selectbar[hidden] { display: none; }
+  .selectbar button { font-family: inherit; font-size: 12px; cursor: pointer; border-radius: 2px; }
+  .selectbar .sb-quiet { background: none; border: none; color: #b9b2a3; padding: 8px 4px; }
+  .selectbar .sb-quiet:hover { color: #fff; }
+  .selectbar .sb-go { background: #f2f0ec; color: #12110f; border: none; padding: 9px 14px; }
+  .selectbar .sb-go:disabled { opacity: .45; cursor: default; }
 
   .empty { padding: 72px 0 40px; max-width: 46ch; }
   .empty h2 { font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 300; margin: 0 0 10px; }
@@ -194,12 +234,20 @@
     .btn-dark { padding: 8px 11px; }
     .btn-download { padding: 9px 12px; }
     .viewer-note { padding: 0 16px 16px; }
-    /* One scrolling line of chips instead of a tall block above the photos. */
+    /* One scrolling line of chips instead of a tall block above the photos.
+       It bleeds to the screen edge and fades out on the right, so it's plain
+       there is more to scroll to. */
+    .filterbar { padding: 0 20px 16px; display: block; }
+    .filter-label { margin: 0 0 8px; }
     .filters {
-      flex-wrap: nowrap; overflow-x: auto; padding: 0 20px 18px;
+      flex-wrap: nowrap; overflow-x: auto; margin: 0 -20px; padding: 0 44px 2px 20px;
       scrollbar-width: none; -webkit-overflow-scrolling: touch;
+      -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
+              mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent);
     }
     .filters::-webkit-scrollbar { display: none; }
+    .chip { font-size: 13px; padding: 9px 13px; }
+    .selectbar { gap: 10px; padding: 8px 8px 8px 14px; bottom: 12px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -223,9 +271,13 @@
     </div>
   </header>
 
-  <nav class="band filters" id="filters" aria-label="Filter by place" hidden></nav>
+  <nav class="band filterbar" id="filterbar" aria-label="Filter by tag" hidden>
+    <p class="filter-label">Tags</p>
+    <div class="filters" id="filters"></div>
+  </nav>
 
   <main class="band">
+    <div class="filter-note" id="filter-note" hidden></div>
     <div id="grid"></div>
     <div class="empty" id="empty" hidden>
       <h2>Nothing here yet.</h2>
@@ -245,6 +297,7 @@
   </footer>
 </div>
 
+<div class="selectbar" id="selectbar" hidden></div>
 <script src="gallery.js"></script>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "538e316967fc4b2dabf69a7c5f32fc95"}'></script><!-- End Cloudflare Web Analytics -->
 </body>

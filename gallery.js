@@ -54,6 +54,8 @@
   const countEl = document.getElementById("count-label");
   const densityEl = document.getElementById("density");
   const filtersEl = document.getElementById("filters");
+  const filterBar = document.getElementById("filterbar");
+  const filterNote = document.getElementById("filter-note");
   let lastFocus = null;
 
   function el(tag, cls, text) {
@@ -177,7 +179,7 @@
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
     filtersEl.textContent = "";
-    filtersEl.hidden = state.tags.length === 0;
+    filterBar.hidden = state.tags.length === 0;
     if (state.filter && !state.tags.some((t) => t.slug === state.filter)) state.filter = null;
     if (!state.tags.length) return;
 
@@ -189,13 +191,37 @@
       b.addEventListener("click", () => setFilter(slug));
       filtersEl.appendChild(b);
     };
-    chip(null, "All", state.photos.length);
+    chip(null, "All photos", state.photos.length);
     for (const t of state.tags) chip(t.slug, t.name, t.count);
     paintFilters();
   }
 
   function paintFilters() {
-    for (const b of filtersEl.children) b.setAttribute("aria-pressed", String(b.dataset.slug === (state.filter || "")));
+    for (const b of filtersEl.children) {
+      const on = b.dataset.slug === (state.filter || "");
+      b.setAttribute("aria-pressed", String(on));
+      // On a phone the chips are one scrolling line: bring the active one in.
+      if (on && state.filter && b.scrollIntoView) b.scrollIntoView({ block: "nearest", inline: "center" });
+    }
+  }
+
+  // Someone arriving on a shared, filtered link sees only part of the gallery.
+  // Say so above and below the photos, with a one-tap way to everything.
+  function paintFilterNotes() {
+    const tag = state.filter && state.tags.find((t) => t.slug === state.filter);
+    filterNote.hidden = !tag;
+    filterNote.textContent = "";
+    if (!tag) return;
+    const total = state.photos.length;
+    const showAll = () => {
+      const b = el("button", "show-all", "Show all " + total);
+      b.type = "button";
+      b.addEventListener("click", () => { setFilter(null); window.scrollTo({ top: 0 }); });
+      return b;
+    };
+    const line = el("span");
+    line.textContent = "Showing " + tag.count + " of " + total + " photographs.";
+    filterNote.append(line, showAll());
   }
 
   function setFilter(slug) {
@@ -214,6 +240,8 @@
     state.visible = [];
     state.photos.forEach((p, i) => { if (!tag || p.tags.includes(tag)) state.visible.push(i); });
     paintCount();
+    paintFilterNotes();
+    if (sel.on) paintSelectBar();
     layout();
   }
 
@@ -238,7 +266,31 @@
       }
       img.src = p.thumb;
       a.appendChild(img);
-      a.addEventListener("click", (e) => { e.preventDefault(); openViewer(idx); });
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (a._held) { a._held = false; return; }   // the click that ends a long press
+        if (sel.on) togglePick(idx); else openViewer(idx);
+      });
+      // Press and hold (finger or mouse) to start selecting, as in a phone's
+      // gallery. Moving first means a scroll or a drag, not a hold.
+      let timer = 0, sx = 0, sy = 0;
+      const cancel = () => { clearTimeout(timer); timer = 0; };
+      a.addEventListener("pointerdown", (e) => {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        a._held = false; sx = e.clientX; sy = e.clientY;
+        cancel();
+        timer = setTimeout(() => {
+          timer = 0;
+          a._held = true;
+          if (!sel.on) setSelecting(true);
+          if (!sel.picked.has(idx)) togglePick(idx);
+          if (navigator.vibrate) navigator.vibrate(12);
+        }, 450);
+      });
+      a.addEventListener("pointermove", (e) => { if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) cancel(); });
+      for (const type of ["pointerup", "pointercancel", "pointerleave"]) a.addEventListener(type, cancel);
+      a.addEventListener("contextmenu", (e) => { if (TOUCH || a._held) e.preventDefault(); });
+      a.addEventListener("dragstart", (e) => e.preventDefault());
       a._ar = p.ar;
       a._img = img;
       return a;
@@ -785,13 +837,148 @@
     e.stopPropagation();
     if (state.agreed) return; // let the native download proceed
     e.preventDefault();
-    openGate();
+    const url = current().full;
+    openGate(() => { if (url) triggerDownload(url); });
   }
+
+  // ---- Downloading several photos ----
+  // Desktop browsers accept a run of ordinary downloads, so each photo arrives
+  // as its own file. Mobile browsers only honour the first, so phones get the
+  // photos in a single .zip instead (stored, not compressed: JPEGs don't
+  // shrink, so that needs only a CRC per file and some headers).
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function crc32(u8) {
+    let c = 0xffffffff;
+    for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  }
+
+  function zipBlob(files) {   // files: [{ name, data: Uint8Array }]
+    const enc = new TextEncoder();
+    const now = new Date();
+    const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    const parts = [], central = [];
+    let offset = 0;
+    for (const f of files) {
+      const name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+      const head = new DataView(new ArrayBuffer(30));
+      head.setUint32(0, 0x04034b50, true); head.setUint16(4, 20, true); head.setUint16(6, 0x0800, true);
+      head.setUint16(10, time, true); head.setUint16(12, date, true); head.setUint32(14, crc, true);
+      head.setUint32(18, size, true); head.setUint32(22, size, true); head.setUint16(26, name.length, true);
+      parts.push(head, name, f.data);
+      const cd = new DataView(new ArrayBuffer(46));
+      cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint16(8, 0x0800, true);
+      cd.setUint16(12, time, true); cd.setUint16(14, date, true); cd.setUint32(16, crc, true);
+      cd.setUint32(20, size, true); cd.setUint32(24, size, true); cd.setUint16(28, name.length, true);
+      cd.setUint32(42, offset, true);
+      central.push(cd, name);
+      offset += 30 + name.length + size;
+    }
+    const cdSize = central.reduce((n, p) => n + p.byteLength, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, end], { type: "application/zip" });
+  }
+
+  let downloading = false;
+  function downloadSet(photos, button) {
+    if (!photos.length || downloading) return;
+    const run = async () => {
+      downloading = true;
+      const original = button.textContent;
+      button.disabled = true;
+      try {
+        if (!TOUCH || photos.length === 1) {
+          for (let i = 0; i < photos.length; i++) {
+            button.textContent = "Downloading " + (i + 1) + " of " + photos.length + "\u2026";
+            triggerDownload(photos[i].full);
+            await new Promise((r) => setTimeout(r, 700));
+          }
+        } else {
+          const files = [];
+          for (let i = 0; i < photos.length; i++) {
+            button.textContent = "Preparing " + (i + 1) + " of " + photos.length + "\u2026";
+            const res = await fetch(photos[i].full);
+            if (!res.ok) throw new Error("fetch failed");
+            files.push({ name: photos[i].full.split("/").pop(), data: new Uint8Array(await res.arrayBuffer()) });
+          }
+          const url = URL.createObjectURL(zipBlob(files));
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "photographs.zip";
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }
+        button.textContent = original;
+      } catch (e) {
+        button.textContent = "Failed \u2014 try again";
+        setTimeout(() => { button.textContent = original; }, 4000);
+      } finally {
+        downloading = false;
+        button.disabled = false;
+      }
+    };
+    if (state.agreed) run(); else openGate(run);
+  }
+
+  // ---- Select mode ----
+  const sel = { on: false, picked: new Set() };
+  const selectBar = document.getElementById("selectbar");
+
+  function setSelecting(on) {
+    sel.on = on;
+    if (!on) { sel.picked.clear(); cells.forEach((c) => c.classList.remove("picked")); }
+    document.body.classList.toggle("selecting", on);
+    paintSelectBar();
+  }
+
+  function togglePick(idx) {
+    if (sel.picked.has(idx)) sel.picked.delete(idx); else sel.picked.add(idx);
+    cells[idx].classList.toggle("picked", sel.picked.has(idx));
+    paintSelectBar();
+  }
+
+  function paintSelectBar() {
+    selectBar.hidden = !sel.on;
+    selectBar.textContent = "";
+    if (!sel.on) return;
+    const n = sel.picked.size;
+    const all = state.visible.every((i) => sel.picked.has(i));
+    const pickAll = el("button", "sb-quiet", all ? "Clear" : "All " + state.visible.length);
+    pickAll.type = "button";
+    pickAll.addEventListener("click", () => {
+      state.visible.forEach((i) => { if (all) sel.picked.delete(i); else sel.picked.add(i); cells[i].classList.toggle("picked", !all); });
+      paintSelectBar();
+    });
+    const go = el("button", "sb-go", n ? "Download " + n : "Download");
+    go.type = "button";
+    go.disabled = !n;
+    go.addEventListener("click", () => {
+      const chosen = state.photos.filter((p, i) => sel.picked.has(i));
+      downloadSet(chosen, go);
+    });
+    const cancel = el("button", "sb-quiet", "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", () => setSelecting(false));
+    selectBar.append(el("span", null, n + " selected"), pickAll, go, cancel);
+  }
+
+
 
   // ---- License gate ----
   let gate = null;
 
-  function openGate() {
+  function openGate(then) {
     if (gate) return;
     state.gateOpen = true;
 
@@ -822,10 +1009,9 @@
     agree.addEventListener("click", (e) => {
       e.stopPropagation();
       rememberAgreement();
-      const url = current().full;
       state.agreed = true;
       closeGate();
-      if (url) triggerDownload(url);
+      if (then) then();
     });
     const cancel = el("button", "btn-quiet", "Cancel");
     cancel.type = "button";
@@ -849,7 +1035,7 @@
       if (e.key === "Escape") closeGate();
       return;
     }
-    if (!V) return;
+    if (!V) { if (e.key === "Escape" && sel.on) setSelecting(false); return; }
     if (e.key === "Escape") closeViewer();
     else if (e.key === "ArrowRight") go(1);
     else if (e.key === "ArrowLeft") go(-1);
