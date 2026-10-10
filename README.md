@@ -7,8 +7,8 @@ A static gallery with no build step and no dependencies — `index.html` and
 
 ```
 index.html           page and styles
-gallery.js           grid, place filters, and the viewer
-photos.json          the manifest: every size of every photo, plus place labels
+gallery.js           banner, tag filters, grid, and the viewer
+photos.json          the manifest: every size of every photo, plus tags
 photos/              full-size images
 photos/thumb/        400px-tall copies (grid)
 photos/thumb2x/      800px-tall copies (grid on high-density screens; viewer)
@@ -19,24 +19,30 @@ LICENSE-photos.txt   CC BY-NC 4.0, covers the photographs
 
 ## How it works
 
-- **Justified rows.** Photos are packed greedily into rows, then each row's
-  height is scaled so its photos exactly span the container at their true
-  aspect ratios. Dimensions come from `photos.json`, so the layout settles
-  before a single image has finished loading.
+- **Banner.** A slow carousel behind the title: every photo that is wider
+  than it is tall takes a turn, in an order shuffled on each visit. Upright
+  photos are left out, by shape alone, so nothing needs marking by hand.
+  Photos wider than the banner pan across it; the rest zoom in gently. Each
+  slide is scaled to size in a worker and drawn with WebGL (a plain canvas
+  where that isn't available), which keeps slow motion smooth and cheap. It
+  pauses whenever it is off screen or the tab is hidden.
+- **Ambient colour.** The page takes a dark tint of the photograph in view.
+- **Tags** — chips for every tag, with counts, in a bar that stays at the
+  top. The active tag is in the URL (`?tag=example-national-park`), so a
+  filtered view can be shared, and the viewer moves within it.
+- **Justified rows.** Each row closes at whichever break lands nearest a
+  target height, then is scaled so its photos span the container at their
+  true aspect ratios; wide panoramas get a row to themselves. Dimensions
+  come from `photos.json`, so the layout settles before any image loads.
 - **Sharp at any size.** Each photo is published in several sizes, and the
-  page always fetches the smallest one that's sharp where it's shown — so a
-  wide panorama gets a wide grid image instead of a stretched one. Grid copies
-  are sized by height, because grid rows have a fixed height.
-- **Density switch** — Large / Medium / Small, remembered per browser.
-- **Place filters** — chips above the grid for every place label, with
-  counts. The active filter is in the URL (`?tag=example-national-park`),
-  so a filtered view can be shared, and the viewer moves within it.
-- **Viewer** — opens instantly from the grid image, then sharpens. Pinch,
-  double-tap, scroll or double-click to zoom; drag to pan. Double-tapping a
-  panorama fills the screen's height so you can pan along it. Swipe sideways
-  for the next photo and down to close. Keyboard: `←` `→` `+` `-` `0` `Esc`.
-  Phones never load more than 20 megapixels; desktops load the original only
-  when zoomed in far enough to need it.
+  page fetches the smallest one that's sharp where it's shown.
+- **Viewer** — the photo lifts out of the grid and settles back on close.
+  Pinch, double-tap, scroll or double-click to zoom; drag to pan; swipe or
+  use the strip of thumbnails to move between photos. Keyboard: `←` `→` `z`
+  `+` `-` `0` `Esc`. Phones never load more than 20 megapixels; desktops
+  load the original only when zoomed in far enough to need it.
+- **Selecting several** — press and hold a photo to start selecting, then
+  download the lot: separate files on a computer, one `.zip` on a phone.
 - **Download gate** — the first download in a browser shows the CC BY-NC 4.0
   terms; the acknowledgement is kept in `localStorage` and a cookie.
 
@@ -62,8 +68,7 @@ LICENSE-photos.txt   CC BY-NC 4.0, covers the photographs
 
 `w`/`h` are the **full** image's pixel dimensions and drive the row layout.
 `renditions` lists every size, smallest first, including the original; the
-page picks from it by need. `tags` are place labels: they make the filter
-chips and the viewer's caption. `location` is an optional caption that takes
+page picks from it by need. `tags` make the filter chips and the captions. `location` is an optional caption that takes
 precedence over the tags. Entries without `renditions` or `tags` still work —
 the page falls back to `thumb` and `full`. An empty `photos` array renders a
 tidy "nothing here yet" state rather than a broken grid.
