@@ -16,10 +16,14 @@
       var from = new Date(y, month, day - 15), to = new Date(y, month, day + 4);   // to: midnight ending day +3
       return now >= from && now < to;
     };
-    var themes = [["halloween", 9, 31]];
+    var nov1 = new Date(y, 10, 1).getDay(), thanksgiving = 1 + (4 - nov1 + 7) % 7 + 21;   // fourth Thursday
+    var themes = [["halloween", 9, 31], ["thanksgiving", 10, thanksgiving], ["christmas", 11, 25]];
     for (var i = 0; i < themes.length; i++) if (season(themes[i][1], themes[i][2])) t = themes[i][0];
-    try { var q = new URL(location.href).searchParams.get("theme"); if (q) t = q === "none" ? null : q; } catch (e) {}
-    if (t) document.documentElement.classList.add("theme-" + t);
+    try {
+      var q = new URL(location.href).searchParams.get("theme");
+      if (q) t = themes.some(function (x) { return x[0] === q; }) ? q : null;
+    } catch (e) {}
+    if (t) document.documentElement.classList.add("themed", "theme-" + t);
   })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -253,57 +257,63 @@
   .v-note { margin: 0; font-size: 11px; font-weight: 300; color: #aaa49a; }
 
 
-  /* --- Halloween (html.theme-halloween) ---
-     Subtle on purpose: ember-orange accents, a candle flicker on the title,
-     low fog drifting through the banner, the odd bat crossing the sky and a
-     faint glow from below. Every moving part is a transform or an opacity
-     change, which the graphics card handles on its own. */
-  .theme-halloween { --ember: #ee8a3c; --ember-soft: rgba(238,138,60,.32); }
-  .theme-halloween ::selection { background: var(--ember); color: #160c06; }
-  .theme-halloween body { background: #110c14; }
-  .theme-halloween #tint::after {
-    content: ""; position: absolute; inset: 0;
-    background: radial-gradient(120% 55% at 50% 112%, rgba(238,118,40,.10), rgba(238,118,40,0) 70%),
-                radial-gradient(90% 45% at 50% -12%, rgba(96,60,140,.10), rgba(96,60,140,0) 70%);
-  }
-  .theme-halloween .hero h1 { position: relative; }
-  .theme-halloween .hero h1::after {
+  /* --- Seasonal themes (html.themed.theme-<name>) ---
+     Each theme sets a few colours and adds a little motion to the banner.
+     Subtle on purpose, and every moving part is a transform or an opacity
+     change, which the graphics card handles on its own. The page background
+     is a single fixed colour per theme (gallery.js). */
+  .themed ::selection { background: var(--accent); color: var(--accent-ink); }
+  .themed body { background: var(--page); }
+  .themed #tint::after { content: ""; position: absolute; inset: 0; background: var(--wash); }
+  .themed .hero h1 { position: relative; }
+  .themed .hero h1::after {
     content: attr(data-text); position: absolute; inset: 0; pointer-events: none; color: transparent;
-    text-shadow: 0 0 18px rgba(255,140,50,.7), 0 0 56px rgba(255,110,30,.38);
-    animation: hw-flicker 6.5s ease-in-out infinite;
+    text-shadow: var(--glow); opacity: .8;
   }
-  @keyframes hw-flicker {
+  .themed .hero-fill { background: var(--fill); box-shadow: 0 0 10px var(--fill-glow); }
+  .themed .hero-arrow:hover { color: var(--fill); }
+  .themed .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .themed .chip[aria-pressed="true"] span { color: var(--accent-count); }
+  .themed .chip:hover { border-color: var(--line); }
+  .themed .cc, .themed .show-all { border-bottom-color: var(--line); }
+  .themed .cell::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s ease;
+    box-shadow: inset 0 0 0 1px var(--rim), inset 0 -40px 60px -30px var(--rim-glow);
+  }
+  @media (hover: hover) { .themed .cell:hover::after { opacity: 1; } }
+  .themed .selecting .cell::after { display: none; }
+  .themed .cell.sel .check { background: var(--accent); color: var(--accent-ink); }
+  .themed .v-thumb[aria-current="true"] { outline-color: var(--accent); }
+  .theme-sign { margin: 0 0 6px; font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 15px; font-weight: 300; color: var(--sign); }
+  .hero-fx { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+  .hero-fx i { position: absolute; display: block; }
+  /* A stopped banner stops its decorations too (gallery.js marks it idle). */
+  .hero.idle .hero-fx i, .hero.idle .hero-fx i::before, .themed .hero.idle h1::after { animation-play-state: paused; }
+
+  /* Halloween: ember orange on midnight violet, a candle flicker on the
+     title, low fog and the odd bat crossing the sky. */
+  .theme-halloween {
+    --page: #110c14; --accent: #ee8a3c; --accent-ink: #160c06; --accent-count: #5a3112;
+    --line: rgba(238,138,60,.32); --fill: #ee8a3c; --fill-glow: rgba(238,138,60,.7);
+    --rim: rgba(238,138,60,.55); --rim-glow: rgba(238,118,40,.35); --sign: #e9a46c;
+    --glow: 0 0 18px rgba(255,140,50,.7), 0 0 56px rgba(255,110,30,.38);
+    --wash: radial-gradient(120% 55% at 50% 112%, rgba(238,118,40,.10), rgba(238,118,40,0) 70%),
+            radial-gradient(90% 45% at 50% -12%, rgba(96,60,140,.10), rgba(96,60,140,0) 70%);
+  }
+  .theme-halloween .hero h1::after { animation: fx-flicker 6.5s ease-in-out infinite; }
+  @keyframes fx-flicker {
     0%, 100% { opacity: .7; } 9% { opacity: .95; } 12% { opacity: .6; } 18% { opacity: .9; }
     40% { opacity: .75; } 52% { opacity: 1; } 55% { opacity: .65; } 70% { opacity: .85; } 86% { opacity: .65; }
   }
-  .theme-halloween .hero-fill { background: var(--ember); box-shadow: 0 0 10px rgba(238,138,60,.7); }
-  .theme-halloween .hero-arrow:hover { color: var(--ember); }
-  .theme-halloween .chip[aria-pressed="true"] { background: var(--ember); border-color: var(--ember); color: #160c06; }
-  .theme-halloween .chip[aria-pressed="true"] span { color: #5a3112; }
-  .theme-halloween .chip:hover { border-color: var(--ember-soft); }
-  .theme-halloween .cc, .theme-halloween .show-all { border-bottom-color: var(--ember-soft); }
-  .theme-halloween .cell::after {
-    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s ease;
-    box-shadow: inset 0 0 0 1px rgba(238,138,60,.55), inset 0 -40px 60px -30px rgba(238,118,40,.35);
-  }
-  @media (hover: hover) { .theme-halloween .cell:hover::after { opacity: 1; } }
-  .theme-halloween .selecting .cell::after { display: none; }
-  .theme-halloween .cell.sel .check { background: var(--ember); color: #160c06; }
-  .theme-halloween .v-thumb[aria-current="true"] { outline-color: var(--ember); }
-  .theme-halloween .hw-sign { margin: 0 0 6px; font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 15px; font-weight: 300; color: #e9a46c; }
-
-  .hw-fog, .hw-bats { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-  .hw-fog { z-index: 2; }
   .hw-fog i {
-    position: absolute; left: 0; bottom: -6%; width: 200%; height: 52%; display: block;
+    left: 0; bottom: -6%; width: 200%; height: 52%;
     background: radial-gradient(closest-side, rgba(214,206,226,.22), rgba(214,206,226,0)) 0 100% / 25% 100% repeat-x,
                 radial-gradient(closest-side, rgba(214,206,226,.14), rgba(214,206,226,0)) 12% 60% / 33.333% 80% repeat-x;
-    animation: hw-drift 95s linear infinite;
+    animation: fx-drift 95s linear infinite;
   }
   .hw-fog i + i { bottom: -14%; height: 40%; opacity: .8; animation-duration: 140s; animation-direction: reverse; }
-  @keyframes hw-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-  .hw-bats { z-index: 2; }
-  .hw-bats i { position: absolute; left: 0; top: 9%; display: block; animation: hw-fly 31s linear infinite; }
+  @keyframes fx-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .hw-bats i { left: 0; top: 9%; animation: hw-fly 31s linear infinite; }
   .hw-bats i::before {
     content: ""; display: block; width: 40px; height: 18px; opacity: .9;
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 44'%3E%3Cpath fill='%2307060a' d='M50 13Q48 12.5 47.2 13.2L46 8.5L44.6 15.6Q44 17.5 45 19.5C40 15 35 9 29 5C21 6 10 8 1 13Q8 16 11 26Q17 20 24 24Q29 21 34 30Q40 24 45.5 27Q46.5 33 50 34Q53.5 33 54.5 27Q60 24 66 30Q71 21 76 24Q83 20 89 26Q92 16 99 13C90 8 79 6 71 5C65 9 60 15 55 19.5Q56 17.5 55.4 15.6L54 8.5L52.8 13.2Q52 12.5 50 13Z'/%3E%3C/svg%3E") center / contain no-repeat;
@@ -321,12 +331,64 @@
     15%  { transform: translate(80vw, -14px) scale(1.05); }
     20%, 100% { transform: translate(110vw, 8px) scale(1); }
   }
-  .hero.idle .hw-fog i, .hero.idle .hw-bats i, .hero.idle .hw-bats i::before, .theme-halloween .hero.idle h1::after { animation-play-state: paused; }
   @keyframes hw-flap { from { transform: scaleY(1); } to { transform: scaleY(.45) translateY(2px); } }
 
+  /* Thanksgiving: harvest amber on deep chestnut, a steady hearth glow on
+     the title, and a few autumn leaves drifting down through the banner. */
+  .theme-thanksgiving {
+    --page: #140d09; --accent: #dc9a3f; --accent-ink: #1c1006; --accent-count: #6b4515;
+    --line: rgba(220,154,63,.32); --fill: #dc9a3f; --fill-glow: rgba(220,154,63,.65);
+    --rim: rgba(220,154,63,.55); --rim-glow: rgba(214,120,50,.32); --sign: #e2b071;
+    --glow: 0 0 18px rgba(236,164,74,.55), 0 0 56px rgba(206,112,44,.32);
+    --wash: radial-gradient(120% 55% at 50% 112%, rgba(222,140,60,.11), rgba(222,140,60,0) 70%),
+            radial-gradient(90% 45% at 50% -12%, rgba(150,52,36,.09), rgba(150,52,36,0) 70%);
+  }
+  .tg-leaves i { top: -40px; animation: tg-fall 30s ease-in-out infinite; }
+  .tg-leaves i::before {
+    content: ""; display: block; width: 26px; height: 26px; opacity: .92;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23b4532a' d='M20 2.5L21.6 8.2L25.2 6.2L24.2 11.6L27.6 10.8L25 17Q26.5 18.8 29.5 17.8L31.6 14.6L32.6 18.6L37.6 17.4L34.4 21.6L36.6 24.6L31 24.8Q29.6 26 28.4 28.6L30.8 31L25.6 30.6L24.6 32.6L20.8 31.4L20.6 38.5L19.2 31.4L15.4 32.6L14.4 30.6L9.2 31L11.6 28.6Q10.4 26 9 24.8L3.4 24.6L5.6 21.6L2.4 17.4L7.4 18.6L8.4 14.6L10.5 17.8Q13.5 18.8 15 17L12.4 10.8L15.8 11.6L14.8 6.2L18.4 8.2L20 2.5Z'/%3E%3C/svg%3E") center / contain no-repeat;
+    animation: tg-flutter 2.8s ease-in-out infinite alternate;
+  }
+  .tg-leaves i:nth-child(1) { left: 9%; }
+  .tg-leaves i:nth-child(2) { left: 27%; animation-duration: 36s; animation-delay: -6s; }
+  .tg-leaves i:nth-child(2)::before { width: 20px; height: 20px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23d9902f' d='M20 2.5L21.6 8.2L25.2 6.2L24.2 11.6L27.6 10.8L25 17Q26.5 18.8 29.5 17.8L31.6 14.6L32.6 18.6L37.6 17.4L34.4 21.6L36.6 24.6L31 24.8Q29.6 26 28.4 28.6L30.8 31L25.6 30.6L24.6 32.6L20.8 31.4L20.6 38.5L19.2 31.4L15.4 32.6L14.4 30.6L9.2 31L11.6 28.6Q10.4 26 9 24.8L3.4 24.6L5.6 21.6L2.4 17.4L7.4 18.6L8.4 14.6L10.5 17.8Q13.5 18.8 15 17L12.4 10.8L15.8 11.6L14.8 6.2L18.4 8.2L20 2.5Z'/%3E%3C/svg%3E"); animation-duration: 3.4s; }
+  .tg-leaves i:nth-child(3) { left: 46%; animation-duration: 42s; animation-delay: -14s; }
+  .tg-leaves i:nth-child(3)::before { width: 23px; height: 23px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%238f3a22' d='M20 2.5L21.6 8.2L25.2 6.2L24.2 11.6L27.6 10.8L25 17Q26.5 18.8 29.5 17.8L31.6 14.6L32.6 18.6L37.6 17.4L34.4 21.6L36.6 24.6L31 24.8Q29.6 26 28.4 28.6L30.8 31L25.6 30.6L24.6 32.6L20.8 31.4L20.6 38.5L19.2 31.4L15.4 32.6L14.4 30.6L9.2 31L11.6 28.6Q10.4 26 9 24.8L3.4 24.6L5.6 21.6L2.4 17.4L7.4 18.6L8.4 14.6L10.5 17.8Q13.5 18.8 15 17L12.4 10.8L15.8 11.6L14.8 6.2L18.4 8.2L20 2.5Z'/%3E%3C/svg%3E"); animation-duration: 2.4s; }
+  .tg-leaves i:nth-child(4) { left: 63%; animation-duration: 33s; animation-delay: -16.5s; }
+  .tg-leaves i:nth-child(4)::before { width: 18px; height: 18px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23c9a13b' d='M20 2.5L21.6 8.2L25.2 6.2L24.2 11.6L27.6 10.8L25 17Q26.5 18.8 29.5 17.8L31.6 14.6L32.6 18.6L37.6 17.4L34.4 21.6L36.6 24.6L31 24.8Q29.6 26 28.4 28.6L30.8 31L25.6 30.6L24.6 32.6L20.8 31.4L20.6 38.5L19.2 31.4L15.4 32.6L14.4 30.6L9.2 31L11.6 28.6Q10.4 26 9 24.8L3.4 24.6L5.6 21.6L2.4 17.4L7.4 18.6L8.4 14.6L10.5 17.8Q13.5 18.8 15 17L12.4 10.8L15.8 11.6L14.8 6.2L18.4 8.2L20 2.5Z'/%3E%3C/svg%3E"); animation-duration: 3.1s; }
+  .tg-leaves i:nth-child(5) { left: 80%; animation-duration: 39s; animation-delay: -26s; }
+  .tg-leaves i:nth-child(5)::before { width: 24px; height: 24px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23d9902f' d='M20 2.5L21.6 8.2L25.2 6.2L24.2 11.6L27.6 10.8L25 17Q26.5 18.8 29.5 17.8L31.6 14.6L32.6 18.6L37.6 17.4L34.4 21.6L36.6 24.6L31 24.8Q29.6 26 28.4 28.6L30.8 31L25.6 30.6L24.6 32.6L20.8 31.4L20.6 38.5L19.2 31.4L15.4 32.6L14.4 30.6L9.2 31L11.6 28.6Q10.4 26 9 24.8L3.4 24.6L5.6 21.6L2.4 17.4L7.4 18.6L8.4 14.6L10.5 17.8Q13.5 18.8 15 17L12.4 10.8L15.8 11.6L14.8 6.2L18.4 8.2L20 2.5Z'/%3E%3C/svg%3E"); animation-duration: 2.6s; }
+  .tg-leaves i:nth-child(6) { left: 93%; animation-duration: 45s; animation-delay: -37.5s; }
+  .tg-leaves i:nth-child(6)::before { width: 19px; height: 19px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%238f3a22' d='M20 2.5L21.6 8.2L25.2 6.2L24.2 11.6L27.6 10.8L25 17Q26.5 18.8 29.5 17.8L31.6 14.6L32.6 18.6L37.6 17.4L34.4 21.6L36.6 24.6L31 24.8Q29.6 26 28.4 28.6L30.8 31L25.6 30.6L24.6 32.6L20.8 31.4L20.6 38.5L19.2 31.4L15.4 32.6L14.4 30.6L9.2 31L11.6 28.6Q10.4 26 9 24.8L3.4 24.6L5.6 21.6L2.4 17.4L7.4 18.6L8.4 14.6L10.5 17.8Q13.5 18.8 15 17L12.4 10.8L15.8 11.6L14.8 6.2L18.4 8.2L20 2.5Z'/%3E%3C/svg%3E"); animation-duration: 3.6s; }
+  /* A swaying fall down the banner, then a rest out of sight below it. */
+  @keyframes tg-fall {
+    0%  { transform: translate(0, 0); }
+    11% { transform: translate(34px, 150px); }
+    22% { transform: translate(-12px, 300px); }
+    33% { transform: translate(38px, 460px); }
+    44% { transform: translate(2px, 620px); }
+    55%, 100% { transform: translate(30px, 820px); }
+  }
+  @keyframes tg-flutter { from { transform: rotate(-38deg); } to { transform: rotate(52deg); } }
+
+  /* Christmas: evergreen night, cranberry and gold, a gently twinkling glow
+     on the title and light snow falling through the banner. */
+  .theme-christmas {
+    --page: #0b1511; --accent: #b93a33; --accent-ink: #fff4ec; --accent-count: #f2c9bd;
+    --line: rgba(224,187,98,.32); --fill: #e0bb62; --fill-glow: rgba(224,187,98,.6);
+    --rim: rgba(224,187,98,.55); --rim-glow: rgba(224,187,98,.28); --sign: #e7c77a;
+    --glow: 0 0 18px rgba(240,204,120,.55), 0 0 56px rgba(224,170,80,.28);
+    --wash: radial-gradient(120% 55% at 50% 112%, rgba(224,187,98,.08), rgba(224,187,98,0) 70%),
+            radial-gradient(90% 45% at 50% -12%, rgba(170,205,230,.07), rgba(170,205,230,0) 70%);
+  }
+  .theme-christmas .hero h1::after { animation: xm-twinkle 4.5s ease-in-out infinite alternate; }
+  @keyframes xm-twinkle { from { opacity: .55; } to { opacity: .95; } }
+  /* The snow itself is drawn with the banner (gallery.js). */
+
   @media (prefers-reduced-motion: reduce) {
-    .hw-bats { display: none; }
-    .hw-fog i, .theme-halloween .hero h1::after { animation: none; }
+    .hw-bats, .tg-leaves { display: none; }
+    .hero-fx i, .themed .hero h1::after { animation: none; }
     #tint, .bar { transition: none; }
     .cell { opacity: 1; transform: none; transition: none; }
     .cell img { transition: filter .3s ease; }

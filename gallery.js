@@ -28,7 +28,15 @@
   const HERO_SECONDS = 7;
   const HERO_FADE = 1400;          // ms
   const NEUTRAL = [30, 6];         // hue, saturation of the untinted page
-  const HALLOWEEN = document.documentElement.classList.contains("theme-halloween");
+  // The seasonal theme, if one is on (chosen by date in index.html).
+  const THEME = (document.documentElement.className.match(/\btheme-([a-z]+)/) || [])[1] || null;
+  const THEMES = {
+    // page hue and saturation, banner decorations, and a line for the footer
+    halloween: { tone: [275, 18], fx: [["hw-fog", 2], ["hw-bats", 3]], sign: "Happy Halloween." },
+    thanksgiving: { tone: [18, 26], fx: [["tg-leaves", 6]], sign: "Happy Thanksgiving." },
+    christmas: { tone: [155, 24], fx: [], snow: true, sign: "Merry Christmas." }
+  };
+  const SEASON = THEMES[THEME] || null;
 
   // ---- State ----
   const S = {
@@ -145,8 +153,8 @@
     const c = p ? p.color || S.colors[key] : null;
     let h = c ? c[0] : NEUTRAL[0];
     let s = c ? Math.min(34, Math.round(c[1] * 0.8)) : NEUTRAL[1];
-    // The Halloween theme keeps one colour throughout: a deep midnight violet.
-    if (HALLOWEEN) { h = 275; s = 18; }
+    // A seasonal theme keeps one colour throughout instead.
+    if (SEASON) { h = SEASON.tone[0]; s = SEASON.tone[1]; }
     return a == null ? "hsl(" + h + ", " + s + "%, " + l + "%)" : "hsla(" + h + ", " + s + "%, " + l + "%, " + a + ")";
   }
 
@@ -174,14 +182,15 @@
   function paintContent() {
     $("site-title").textContent = CONTENT.siteTitle;
     $("site-title").setAttribute("data-text", CONTENT.siteTitle);
-    if (HALLOWEEN) {
-      const fog = el("div", "hw-fog"), bats = el("div", "hw-bats");
-      fog.setAttribute("aria-hidden", "true");
-      bats.setAttribute("aria-hidden", "true");
-      fog.append(el("i"), el("i"));
-      bats.append(el("i"), el("i"), el("i"));
-      heroCanvas.after(fog, bats);
-      document.querySelector(".footer-inner > div").prepend(el("p", "hw-sign", "Happy Halloween."));
+    if (SEASON) {
+      const layers = SEASON.fx.map(([name, n]) => {
+        const fx = el("div", "hero-fx " + name);
+        fx.setAttribute("aria-hidden", "true");
+        for (let i = 0; i < n; i++) fx.appendChild(el("i"));
+        return fx;
+      });
+      heroCanvas.after(...layers);
+      document.querySelector(".footer-inner > div").prepend(el("p", "theme-sign", SEASON.sign));
     }
     $("site-author").textContent = CONTENT.author;
     $("site-blurb").textContent = CONTENT.siteBlurb;
@@ -236,22 +245,35 @@
       "void main() { v = r.xy + vec2(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5) * r.zw; gl_Position = vec4(p, 0.0, 1.0); }";
     const FS = "precision highp float; uniform sampler2D t; uniform float a; varying highp vec2 v;" +
       "void main() { gl_FragColor = vec4(texture2D(t, v).rgb, a); }";
-    let uRect = null, uAlpha = null;
+    // Snowflakes are points, each a soft disc worked out per pixel from its
+    // exact centre, so they drift smoothly however slowly they move.
+    const SVS = "attribute vec4 q; uniform vec2 res; varying float va; varying float vr; varying float vs;" +
+      "void main() { vs = q.z * 2.0 + 3.0; vr = q.z; va = q.w; gl_PointSize = vs;" +
+      " gl_Position = vec4(q.x / res.x * 2.0 - 1.0, 1.0 - q.y / res.y * 2.0, 0.0, 1.0); }";
+    const SFS = "precision mediump float; varying float va; varying float vr; varying float vs;" +
+      "void main() { float d = length(gl_PointCoord - 0.5) * vs;" +
+      " gl_FragColor = vec4(1.0, 1.0, 1.0, va * (1.0 - smoothstep(vr - 0.8, vr + 0.9, d))); }";
+    let tex = null, dots = null, quad = null, flakeBuf = null;
     const setup = () => {
       const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
-      const prog = gl.createProgram();
-      gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
-      gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
-      gl.linkProgram(prog);
-      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return false;
-      gl.useProgram(prog);
-      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      const program = (vs, fs, attr) => {
+        const prog = gl.createProgram();
+        gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs));
+        gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+        gl.bindAttribLocation(prog, 0, attr);
+        gl.linkProgram(prog);
+        return gl.getProgramParameter(prog, gl.LINK_STATUS) ? prog : null;
+      };
+      const t = program(VS, FS, "p");
+      if (!t) return false;
+      tex = { prog: t, rect: gl.getUniformLocation(t, "r"), alpha: gl.getUniformLocation(t, "a") };
+      const d = program(SVS, SFS, "q");
+      dots = d ? { prog: d, res: gl.getUniformLocation(d, "res") } : null;
+      quad = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, quad);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-      const loc = gl.getAttribLocation(prog, "p");
-      gl.enableVertexAttribArray(loc);
-      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-      uRect = gl.getUniformLocation(prog, "r");
-      uAlpha = gl.getUniformLocation(prog, "a");
+      flakeBuf = gl.createBuffer();
+      gl.enableVertexAttribArray(0);
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.clearColor(12 / 255, 11 / 255, 10 / 255, 1);
@@ -281,10 +303,23 @@
         gl.clear(gl.COLOR_BUFFER_BIT);
       },
       draw(held, u, v, uw, vh, alpha) {
+        gl.useProgram(tex.prog);
+        gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         gl.bindTexture(gl.TEXTURE_2D, held.tex);
-        gl.uniform4f(uRect, u, v, uw, vh);
-        gl.uniform1f(uAlpha, alpha);
+        gl.uniform4f(tex.rect, u, v, uw, vh);
+        gl.uniform1f(tex.alpha, alpha);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      },
+      // flakes: x, y, radius, alpha for each, in canvas pixels
+      flakes(f, n) {
+        if (!dots || !n) return;
+        gl.useProgram(dots.prog);
+        gl.bindBuffer(gl.ARRAY_BUFFER, flakeBuf);
+        gl.bufferData(gl.ARRAY_BUFFER, f.subarray(0, n * 4), gl.STREAM_DRAW);
+        gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0);
+        gl.uniform2f(dots.res, canvas.width, canvas.height);
+        gl.drawArrays(gl.POINTS, 0, n);
       }
     };
     // The browser may take the graphics context away (and give it back).
@@ -313,6 +348,15 @@
       draw(held, u, v, uw, vh, alpha) {
         c.globalAlpha = alpha;
         c.drawImage(held.pic, u * held.w, v * held.h, uw * held.w, vh * held.h, 0, 0, canvas.width, canvas.height);
+      },
+      flakes(f, n) {
+        c.fillStyle = "#fff";
+        for (let i = 0; i < n * 4; i += 4) {
+          c.globalAlpha = f[i + 3];
+          c.beginPath();
+          c.arc(f[i], f[i + 1], f[i + 2], 0, Math.PI * 2);
+          c.fill();
+        }
       }
     };
   }
@@ -368,20 +412,28 @@
   // Scaling slides. Fetching, decoding and shrinking a 12-megapixel JPEG
   // takes long enough to make the banner stutter, so it happens in a worker
   // and only the finished, right-sized picture comes back. Shrinking in one
-  // step looks gritty, so the size is halved step by step.
+  // step looks gritty, so the size is halved step by step. Two Firefox
+  // details matter here: it decodes for createImageBitmap on the page's own
+  // thread (a visible hitch at every slide), so ImageDecoder is used where
+  // there is one; and the canvases stay on the processor (willReadFrequently).
   const WORKER = "self.onmessage = async (e) => {" +
     "const m = e.data;" +
     "try { new OffscreenCanvas(1, 1).getContext('2d').drawImage; } catch (x) { self.postMessage({ id: m.id, unsupported: true }); return; }" +
     "try {" +
     "const res = await fetch(m.url); if (!res.ok) throw 0;" +
-    "let src = await createImageBitmap(await res.blob()), w = src.width, h = src.height;" +
+    "const blob = await res.blob(); let src = null, w = 0, h = 0;" +
+    "if (typeof ImageDecoder === 'function') try {" +
+    "  const dec = new ImageDecoder({ data: await blob.arrayBuffer(), type: blob.type || 'image/jpeg' });" +
+    "  src = (await dec.decode()).image; w = src.displayWidth; h = src.displayHeight; dec.close();" +
+    "} catch (x) { src = null; }" +
+    "if (!src) { src = await createImageBitmap(blob); w = src.width; h = src.height; }" +
     "const tw = Math.max(1, Math.min(m.bw, w)), th = Math.max(1, Math.round(tw * h / w));" +
-    "const step = (nw, nh) => { const c = new OffscreenCanvas(nw, nh), x = c.getContext('2d');" +
+    "const step = (nw, nh) => { const c = new OffscreenCanvas(nw, nh), x = c.getContext('2d', { willReadFrequently: true });" +
     "x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, w, h, 0, 0, nw, nh);" +
     "if (src.close) src.close(); else src.width = src.height = 0; src = c; w = nw; h = nh; };" +
     "while (w / tw > 2) step(Math.ceil(w / 2), Math.ceil(h / 2));" +
     "if (w !== tw || !src.transferToImageBitmap) step(tw, th);" +
-    "const s = new OffscreenCanvas(24, 24), sx = s.getContext('2d'); sx.drawImage(src, 0, 0, 24, 24);" +
+    "const s = new OffscreenCanvas(24, 24), sx = s.getContext('2d', { willReadFrequently: true }); sx.drawImage(src, 0, 0, 24, 24);" +
     "const px = Array.from(sx.getImageData(0, 0, 24, 24).data);" +
     "const out = src.transferToImageBitmap();" +
     "self.postMessage({ id: m.id, bitmap: out, px: px }, [out]);" +
@@ -546,6 +598,38 @@
     PAINT.draw(e.held, u, v, uw, vh, alpha);
   }
 
+  // ---- Snow (Christmas) ----
+  // Each flake's place is worked out from the banner's clock, so the snow
+  // stops and starts with the banner. A far layer of small, slow flakes and
+  // a near layer of larger, quicker ones, all swaying a little.
+  const SNOW = !!(SEASON && SEASON.snow) && !REDUCED;
+  let flakes = null, flakeData = null;
+  function makeFlakes() {
+    const n = Math.min(160, Math.max(24, Math.round((HERO.W * HERO.H) / 9000)));
+    flakes = [];
+    for (let i = 0; i < n; i++) {
+      const near = Math.random() < 0.3, r = (lo, hi) => lo + Math.random() * (hi - lo);
+      flakes.push({
+        x: Math.random(), y: Math.random(), ph: r(0, Math.PI * 2), w: r(0.7, 1.6),
+        size: near ? r(1.6, 2.6) : r(0.7, 1.3), v: near ? r(28, 42) : r(12, 22),
+        amp: near ? r(10, 24) : r(4, 12), a: near ? r(0.75, 0.95) : r(0.45, 0.7)
+      });
+    }
+    flakeData = new Float32Array(n * 4);
+  }
+  function drawSnow() {
+    if (!HERO.W || !HERO.H) return;
+    if (!flakes) makeFlakes();
+    const W = HERO.W, H = HERO.H, k = heroCanvas.width / W, t = HERO.clock / 1000;
+    let j = 0;
+    for (const f of flakes) {
+      const y = ((f.y * (H + 20) + f.v * t) % (H + 20)) - 10;
+      const x = ((((f.x * (W + 40) + 6 * t + f.amp * Math.sin(f.w * t + f.ph)) % (W + 40)) + W + 40) % (W + 40)) - 20;
+      flakeData[j++] = x * k; flakeData[j++] = y * k; flakeData[j++] = f.size * k; flakeData[j++] = f.a;
+    }
+    PAINT.flakes(flakeData, flakes.length);
+  }
+
   function drawHero() {
     if (PAINT.lost) return;
     HERO.dirty = false;
@@ -554,6 +638,7 @@
     const a = A && A.t0 != null ? EASE(Math.min(1, (HERO.clock - A.t0) / HERO_FADE)) : 0;
     if (P && a < 1) drawSlide(P, 1);
     if (a > 0) drawSlide(A, a);
+    if (SNOW) drawSnow();
   }
 
   // The banner only runs while it's on screen and nothing covers it, and
@@ -598,7 +683,7 @@
       const fading = A.t0 != null && t < HERO_FADE;
       const moving = A.t0 != null && (MOTION.kb > 1 || MOTION.pan) && t < dur + HERO_FADE;
       const panning = moving && MOTION.pan && heroGeom(A.p).kind !== "kb";
-      every = fading || panning ? (PAINT.gl ? 1 : 2) : moving ? 2 : 0;
+      every = fading || panning || SNOW ? (PAINT.gl ? 1 : 2) : moving ? 2 : 0;
     }
     if (HERO.dirty || (every && HERO.frames % every === 0)) drawHero();
     HERO.raf = requestAnimationFrame(heroFrame);
