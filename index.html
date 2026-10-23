@@ -6,6 +6,22 @@
 <title>Photographs — Bradley Chavis</title>
 <meta name="description" content="Photographs by Bradley Chavis. Free for personal, non-commercial use under CC BY-NC 4.0.">
 <meta name="theme-color" content="#171512">
+<script>
+  // Seasonal themes switch themselves on from 15 days before the holiday to
+  // 3 days after it; the rest of the year the site has no theme. Preview one
+  // with ?theme=<name>, or turn it off with ?theme=none.
+  (function () {
+    var now = new Date(), y = now.getFullYear(), t = null;
+    var season = function (month, day) {
+      var from = new Date(y, month, day - 15), to = new Date(y, month, day + 4);   // to: midnight ending day +3
+      return now >= from && now < to;
+    };
+    var themes = [["halloween", 9, 31]];
+    for (var i = 0; i < themes.length; i++) if (season(themes[i][1], themes[i][2])) t = themes[i][0];
+    try { var q = new URL(location.href).searchParams.get("theme"); if (q) t = q === "none" ? null : q; } catch (e) {}
+    if (t) document.documentElement.classList.add("theme-" + t);
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
@@ -236,7 +252,81 @@
   .v-download:hover { background: #ffffff; color: #12110f; }
   .v-note { margin: 0; font-size: 11px; font-weight: 300; color: #aaa49a; }
 
+
+  /* --- Halloween (html.theme-halloween) ---
+     Subtle on purpose: ember-orange accents, a candle flicker on the title,
+     low fog drifting through the banner, the odd bat crossing the sky and a
+     faint glow from below. Every moving part is a transform or an opacity
+     change, which the graphics card handles on its own. */
+  .theme-halloween { --ember: #ee8a3c; --ember-soft: rgba(238,138,60,.32); }
+  .theme-halloween ::selection { background: var(--ember); color: #160c06; }
+  .theme-halloween body { background: #110c14; }
+  .theme-halloween #tint::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(120% 55% at 50% 112%, rgba(238,118,40,.10), rgba(238,118,40,0) 70%),
+                radial-gradient(90% 45% at 50% -12%, rgba(96,60,140,.10), rgba(96,60,140,0) 70%);
+  }
+  .theme-halloween .hero h1 { position: relative; }
+  .theme-halloween .hero h1::after {
+    content: attr(data-text); position: absolute; inset: 0; pointer-events: none; color: transparent;
+    text-shadow: 0 0 18px rgba(255,140,50,.7), 0 0 56px rgba(255,110,30,.38);
+    animation: hw-flicker 6.5s ease-in-out infinite;
+  }
+  @keyframes hw-flicker {
+    0%, 100% { opacity: .7; } 9% { opacity: .95; } 12% { opacity: .6; } 18% { opacity: .9; }
+    40% { opacity: .75; } 52% { opacity: 1; } 55% { opacity: .65; } 70% { opacity: .85; } 86% { opacity: .65; }
+  }
+  .theme-halloween .hero-fill { background: var(--ember); box-shadow: 0 0 10px rgba(238,138,60,.7); }
+  .theme-halloween .hero-arrow:hover { color: var(--ember); }
+  .theme-halloween .chip[aria-pressed="true"] { background: var(--ember); border-color: var(--ember); color: #160c06; }
+  .theme-halloween .chip[aria-pressed="true"] span { color: #5a3112; }
+  .theme-halloween .chip:hover { border-color: var(--ember-soft); }
+  .theme-halloween .cc, .theme-halloween .show-all { border-bottom-color: var(--ember-soft); }
+  .theme-halloween .cell::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s ease;
+    box-shadow: inset 0 0 0 1px rgba(238,138,60,.55), inset 0 -40px 60px -30px rgba(238,118,40,.35);
+  }
+  @media (hover: hover) { .theme-halloween .cell:hover::after { opacity: 1; } }
+  .theme-halloween .selecting .cell::after { display: none; }
+  .theme-halloween .cell.sel .check { background: var(--ember); color: #160c06; }
+  .theme-halloween .v-thumb[aria-current="true"] { outline-color: var(--ember); }
+  .theme-halloween .hw-sign { margin: 0 0 6px; font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 15px; font-weight: 300; color: #e9a46c; }
+
+  .hw-fog, .hw-bats { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .hw-fog { z-index: 2; }
+  .hw-fog i {
+    position: absolute; left: 0; bottom: -6%; width: 200%; height: 52%; display: block;
+    background: radial-gradient(closest-side, rgba(214,206,226,.22), rgba(214,206,226,0)) 0 100% / 25% 100% repeat-x,
+                radial-gradient(closest-side, rgba(214,206,226,.14), rgba(214,206,226,0)) 12% 60% / 33.333% 80% repeat-x;
+    animation: hw-drift 95s linear infinite;
+  }
+  .hw-fog i + i { bottom: -14%; height: 40%; opacity: .8; animation-duration: 140s; animation-direction: reverse; }
+  @keyframes hw-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .hw-bats { z-index: 2; }
+  .hw-bats i { position: absolute; left: 0; top: 9%; display: block; animation: hw-fly 31s linear infinite; }
+  .hw-bats i::before {
+    content: ""; display: block; width: 40px; height: 18px; opacity: .9;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 44'%3E%3Cpath fill='%2307060a' d='M50 13Q48 12.5 47.2 13.2L46 8.5L44.6 15.6Q44 17.5 45 19.5C40 15 35 9 29 5C21 6 10 8 1 13Q8 16 11 26Q17 20 24 24Q29 21 34 30Q40 24 45.5 27Q46.5 33 50 34Q53.5 33 54.5 27Q60 24 66 30Q71 21 76 24Q83 20 89 26Q92 16 99 13C90 8 79 6 71 5C65 9 60 15 55 19.5Q56 17.5 55.4 15.6L54 8.5L52.8 13.2Q52 12.5 50 13Z'/%3E%3C/svg%3E") center / contain no-repeat;
+    animation: hw-flap .17s ease-in-out infinite alternate;
+  }
+  .hw-bats i:nth-child(2) { top: 16%; animation-duration: 43s; animation-delay: -18s; }
+  .hw-bats i:nth-child(2)::before { width: 30px; height: 13px; animation-duration: .14s; }
+  .hw-bats i:nth-child(3) { top: 5%; animation-duration: 57s; animation-delay: -40s; animation-direction: reverse; }
+  .hw-bats i:nth-child(3)::before { width: 22px; height: 10px; opacity: .7; animation-duration: .12s; }
+  /* Most of each cycle the bat waits out of sight; then one quick, wavering pass. */
+  @keyframes hw-fly {
+    0%   { transform: translate(-8vw, 30px) scale(.9); }
+    5%   { transform: translate(22vw, -6px) scale(1); }
+    10%  { transform: translate(52vw, 22px) scale(.95); }
+    15%  { transform: translate(80vw, -14px) scale(1.05); }
+    20%, 100% { transform: translate(110vw, 8px) scale(1); }
+  }
+  .hero.idle .hw-fog i, .hero.idle .hw-bats i, .hero.idle .hw-bats i::before, .theme-halloween .hero.idle h1::after { animation-play-state: paused; }
+  @keyframes hw-flap { from { transform: scaleY(1); } to { transform: scaleY(.45) translateY(2px); } }
+
   @media (prefers-reduced-motion: reduce) {
+    .hw-bats { display: none; }
+    .hw-fog i, .theme-halloween .hero h1::after { animation: none; }
     #tint, .bar { transition: none; }
     .cell { opacity: 1; transform: none; transition: none; }
     .cell img { transition: filter .3s ease; }

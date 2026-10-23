@@ -28,6 +28,7 @@
   const HERO_SECONDS = 7;
   const HERO_FADE = 1400;          // ms
   const NEUTRAL = [30, 6];         // hue, saturation of the untinted page
+  const HALLOWEEN = document.documentElement.classList.contains("theme-halloween");
 
   // ---- State ----
   const S = {
@@ -142,8 +143,10 @@
   function tone(key, l, a) {
     const p = key && S.photos.find((x) => x.key === key);
     const c = p ? p.color || S.colors[key] : null;
-    const h = c ? c[0] : NEUTRAL[0];
-    const s = c ? Math.min(34, Math.round(c[1] * 0.8)) : NEUTRAL[1];
+    let h = c ? c[0] : NEUTRAL[0];
+    let s = c ? Math.min(34, Math.round(c[1] * 0.8)) : NEUTRAL[1];
+    // The Halloween theme keeps one colour throughout: a deep midnight violet.
+    if (HALLOWEEN) { h = 275; s = 18; }
     return a == null ? "hsl(" + h + ", " + s + "%, " + l + "%)" : "hsla(" + h + ", " + s + "%, " + l + "%, " + a + ")";
   }
 
@@ -170,6 +173,16 @@
   // ---- Static content ----
   function paintContent() {
     $("site-title").textContent = CONTENT.siteTitle;
+    $("site-title").setAttribute("data-text", CONTENT.siteTitle);
+    if (HALLOWEEN) {
+      const fog = el("div", "hw-fog"), bats = el("div", "hw-bats");
+      fog.setAttribute("aria-hidden", "true");
+      bats.setAttribute("aria-hidden", "true");
+      fog.append(el("i"), el("i"));
+      bats.append(el("i"), el("i"), el("i"));
+      heroCanvas.after(fog, bats);
+      document.querySelector(".footer-inner > div").prepend(el("p", "hw-sign", "Happy Halloween."));
+    }
     $("site-author").textContent = CONTENT.author;
     $("site-blurb").textContent = CONTENT.siteBlurb;
     $("license-note").textContent = CONTENT.licenseNote;
@@ -549,12 +562,16 @@
   const heroMayAdvance = () => !S.gateOpen && window.scrollY < HERO.H * 0.8;
 
   function heroKick() {
-    if (!HERO.raf && heroOnScreen()) HERO.raf = requestAnimationFrame(heroFrame);
+    if (!HERO.raf && heroOnScreen()) {
+      heroEl.classList.remove("idle");
+      HERO.raf = requestAnimationFrame(heroFrame);
+    }
   }
 
   function heroFrame(now) {
     HERO.raf = 0;
-    if (!heroOnScreen()) { HERO.last = 0; return; }
+    // Stopped, the banner's decorations (if a theme has any) stop too.
+    if (!heroOnScreen()) { HERO.last = 0; heroEl.classList.add("idle"); return; }
     // The banner keeps its own clock, which stops whenever the banner does,
     // so it always picks up exactly where it left off.
     if (HERO.last) HERO.clock += Math.min(100, now - HERO.last);
