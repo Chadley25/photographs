@@ -618,10 +618,16 @@
     chip(null, "All photos", S.photos.length);
     for (const t of names) chip(t, t, counts[t]);
     paintTags();
+    // Chips change width once the web font arrives; centre the chosen one again.
+    if (S.tag && document.fonts && document.fonts.ready) document.fonts.ready.then(() => paintTags());
   }
 
-  function paintTags() {
-    for (const b of tagsEl.querySelectorAll(".chip")) b.setAttribute("aria-pressed", String(b.dataset.tag === (S.tag || "")));
+  function paintTags(smooth) {
+    for (const b of tagsEl.querySelectorAll(".chip")) {
+      const on = b.dataset.tag === (S.tag || "");
+      b.setAttribute("aria-pressed", String(on));
+      if (on) centreChip(b, smooth);
+    }
     const photos = filtered();
     shownEl.textContent = S.loaded ? plural(photos.length) : "";
     filterNote.hidden = !S.tag;
@@ -635,6 +641,15 @@
     }
   }
 
+  // On a narrow screen the tags are one sideways-scrolling line: bring the
+  // chosen one to the middle, so the tags either side of it stay in view.
+  function centreChip(b, smooth) {
+    if (tagsEl.scrollWidth <= tagsEl.clientWidth) return;
+    const r = b.getBoundingClientRect(), row = tagsEl.getBoundingClientRect();
+    const left = tagsEl.scrollLeft + (r.left + r.width / 2) - (row.left + row.width / 2);
+    tagsEl.scrollTo({ left: left, behavior: smooth && !REDUCED ? "smooth" : "auto" });
+  }
+
   function setTag(name, stay) {
     S.tag = name || null;
     S.i = 0;
@@ -643,7 +658,7 @@
       if (S.tag) u.searchParams.set("tag", slugify(S.tag)); else u.searchParams.delete("tag");
       history.replaceState(null, "", u);
     } catch (e) {}
-    paintTags();
+    paintTags(true);
     layout();
     paintSelectBar();
     // A different set of photos starts from its first row.
